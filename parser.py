@@ -21,7 +21,7 @@ def get_prereq(tag):
     prereq = []
     while still_going(tag.next_sibling):
         tag = tag.next_sibling
-        if tag.name == 'a':
+        if tag.name == 'a' and tag.string != ' ':
             prereq.append(tag.string)
     return prereq
 
@@ -46,16 +46,25 @@ def main(file_name):
             course = course.next_sibling
             if course.string and 'Prerequisites:' in course.string:
                 break
-        prereq = []
+        prereq = tuple()
         if course.string and 'Prerequisites: ' in course.string:
-            prereq = get_prereq(course)
+            prereq = tuple(sorted(get_prereq(course)))
             #print('prereq', prereq)
         nodes.append((course_code, prereq))
     
-    out_file = open('dependancies.csv', 'w')
-    for code, dep in nodes:
-        csv = ','.join([code] + dep)
-        print(csv, file=out_file)
+    out_file = open('dependencies.dot', 'w')
+    print('digraph G {', file=out_file)
+    for code, dependencies in set(nodes):
+        node_name = code.strip().replace(' ', '_')
+        deps = set([str(dep.strip().replace(' ', '_')) for dep in dependencies])
+        
+        if node_name == 'BU_383':
+            print(dependencies)
+        
+        for dep in deps:
+            child_name = dep
+            print('    {} -> {};'.format(node_name, child_name), file=out_file)
+    print('}', file=out_file)
 
 if __name__ == '__main__':
     main(sys.argv[1])
