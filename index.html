@@ -1,25 +1,86 @@
 <!DOCTYPE html>
 <html>
   <head>
-	<!-- load platform.js for polyfills. -->
+	<title>core-scaffold</title>
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	
 	<script src="bower_components/platform/platform.js"></script>
+	
 	<link rel="import"
-		  href="bower_components/core-ajax/core-ajax.html">
+		  href="bower_components/core-scaffold/core-scaffold.html">
+	<link rel="import"
+		  href="bower_components/core-header-panel/core-header-panel.html">
+	<link rel="import"
+		  href="bower_components/core-menu/core-menu.html">
+	<link rel="import"
+		  href="bower_components/core-menu/core-submenu.html">
+	<link rel="import"
+		  href="bower_components/core-item/core-item.html">
+	
+	<style>
+	 
+     html, body {
+       height: 100%;
+       margin: 0;
+     }
+	 
+     body {
+       font-family: sans-serif;
+     }
+     
+     core-scaffold {
+       position: absolute;
+       top: 0;
+       right: 0;
+       bottom: 0;
+       left: 0;
+     }
+
+	 core-toolbar {
+	   background-color: #526E9C;
+	   color: #fff;
+	 }
+     
+	</style>
+	
   </head>
-  <body>
-	<core-ajax url="http://example.com/json"
-			   handleAs="json"></core-ajax>
-	<script>
-	  window.addEventListener('polymer-ready',
-function(e) {
-	  var ajax = document.querySelector('core-ajax');
-	  ajax.addEventListener('core-response',
-function(e) {
-	  console.log(this.response);
-});
-	  ajax.go() // Call its API methods
-	  });
-	</script>
-	<roster-list persons='[{"name": "John"}, {"name": "Bob"}]'></roster-list>
+  
+  <body unresolved>
+	<core-scaffold>
+      <core-header-panel navigation flex mode="seamed">
+		<core-toolbar >Course Graph</core-toolbar>
+		<core-menu selected="0">
+		  
+		  <core-submenu icon="settings" label="Section">
+			<core-item label="Topic 1"></core-item>
+			<core-item label="Topic 2"></core-item>
+		  </core-submenu>
+		  
+		  <core-submenu icon="settings" label="Filters">
+			<core-item label="Favorite 1"></core-item>
+			<core-item label="Favorite 2"></core-item>
+			<core-item label="Favorite 3"></core-item>
+		  </core-submenu>
+		  
+		</core-menu>
+		<!-- <core-menu selected="0" theme="core-light-theme">
+		<core-submenu icon="settings" label="Section">
+		<core-item icon="settings" label="item1"></core-item>
+		</core-submenu>
+		<core-submenu icon="settings" label="Filters"
+		<core-item icon="settings" label="item2"></core-item>
+		</core-submenu>
+		</core-menu> -->
+      </core-header-panel>
+      
+      <div tool>Title</div>
+      
+      <div>Content goes here...</div>
+	  
+	</core-scaffold>
+	
   </body>
 </html>

@@ -1,0 +1,220 @@
+{
+	"Faculty of Arts": {
+		"General BA without Designation": {
+			
+		}
+		"Anthropology Program": {
+			
+		}
+		"Arabic (Lang/Lit)": {
+			
+		}
+		"Archaeology & Classical Studies": {
+			
+		}
+		"Co-operative Education Option": {
+			
+		}
+		"Communication Studies": {
+			
+		}
+		"Community Engagement Option": {
+			
+		}
+		"Cultural Studies Program": {
+			
+		}
+		"English": {
+			
+		}
+		"Environmental Studies": {
+			
+		}
+		"Faculty of Arts (Interdisciplinary)": {
+			
+		}
+		"Film Studies": {
+			
+		}
+		"French (Lang/Lit)": {
+			
+		}
+		"Geography": {
+			
+		}
+		"Geology (GG/ES)": {
+			
+		}
+		"German (Lang/Lit)": {
+			
+		}
+		"Global Studies": {
+			
+		}
+		"Greek": {
+			
+		}
+		"History": {
+			
+		}
+		"History & Philosophy of Science Program": {
+			
+		}
+		"Italian (Lang/Lit)": {
+			
+		}
+		"Languages & Literatures": {
+			
+		}
+		"Latin": {
+			
+		}
+		"Legal Studies Option": {
+			
+		}
+		"Management Option (SBE)": {
+			
+		}
+		"Medieval Studies Program": {
+			
+		}
+		"Music (Fac of Music)": {
+			
+		}
+		"Muslim Studies Option": {
+			
+		}
+		"Near Eastern Studies": {
+			
+		}
+		"North American Studies Program": {
+			
+		}
+		"Philosophy": {
+			
+		}
+		"Political Science": {
+			
+		}
+		"Religion & Culture": {
+			
+		}
+		"Social Welfare (OC)": {
+			
+		}
+		"Sociology": {
+			
+		}
+		"Spanish (Lang/Lit)": {
+			
+		}
+		"Women and Gender Studies Program": {
+			
+		}
+	}
+	"School of Business & Economics": {
+		
+	}
+	"Faculty of Education": {
+		
+	}
+	"Faculty of Human & Social Sciences": {
+		
+	}
+	"Faculty of Liberal Arts": {
+		
+	}
+	"Faculty of Music": {
+		
+	}
+	"Faculty of Science": {
+		
+	}
+	"Faculty of Social Work": {
+		
+	}
+	"Waterloo Lutheran Seminary": {
+		
+	}
+}
+
+Anthropology
+Arabic
+Archaeology
+Arts Topic Seminar
+Astronomy
+Biology
+Brantford Foundations
+Business
+Business Technology Management
+Chemistry
+Childhood Education
+Christian/Global Citizenship
+Classics
+Communication Studies
+Computer Science
+Criminology
+Cultural Analysis &amp; Social Thy
+Cultural Studies
+Digital Humanities
+Economics
+Education
+Education Minor
+English
+Environmental Studies
+Film Studies
+French
+Geography
+Geology
+German
+Global Governance
+Global Studies
+Greek
+Health Science
+Health Studies
+History
+Human Biology
+Human Rights &amp; Human Diversity
+Indigenous Studies
+International Public Policy
+Italian
+Journalism
+Kinesiology &amp; Physical Ed
+Language and Literature
+Latin
+Law &amp; Society
+Master Finance
+Master Science
+Mathematics
+Media Studies
+Medieval Studies
+Mediterranean Studies
+Music
+Near Eastern Studies
+Nipissing Ed
+North American Studies
+Organizational Leadership
+Philosophy
+Physics
+Political Science
+Psychology
+Religion&amp;Culture
+Science
+Soc Justice &amp; Community Engage
+Social Entrepreneurship
+Social Welfare
+Social Work
+Society, Cul &amp; Env (Cont St)
+Sociology
+Spanish
+Technology Management
+Theology
+UW-Actuarial Science
+UW-Applied Mathematics
+UW-Combinatorics&amp;Opt
+UW-Computational Mathematics
+UW-Computer Science
+UW-Pure Mathematics
+UW-Statistics
+Women's Studies
+Youth and Children Studies
