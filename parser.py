@@ -4,10 +4,82 @@ from bs4 import BeautifulSoup
 import bs4
 import itertools as it
 import sys
+import json
 
-
-extra_letters = {'W', 'A', 'K', 'U', 'V', 'Z', 'H', 'J', 'F', 'E', 'Y', 'C', 'M', 'D', 'X', 'O', 'N', 'I', 'T', 'S', 'G', 'R', 'L', 'B', 'P', 'Q'}
+extra_letters = {}
 nums = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
+departments = {'04':'UWaterloo', '05':'UWaterloo', '20':'UWaterloo',
+               '27':'UWaterloo', '36':'UWaterloo', 'AB':'Languages',
+               'AF':'Arts (Interdisciplinary)', 'AN':'Anthropology',
+               'AP':'UWaterloo', 'AR':'Archaeology',
+               'AS':'Astronomy', 'BF':'Brantford Foundations',
+               'BI':'Biology', 'BU':'Business', 'CA':'Other', 'CC':'Kriminology',
+               'CH':'Chemistry', 'CL':'Classical Studies',
+               'CO':'Education', 'CP':'Computer Science',
+               'CQ':'Cultural Analysis', 'CS':'Communication Studies',
+               'CT':'Sociology', 'CX':'UWaterloo',
+               'DH':'History', 'EC':'Economics', 'ED':'Education',
+               'EM':'Education', 'EN':'English', 'ES':'Environment',
+               'EU':'Education', 'FR':'Languages', 'FS':'English',
+               'GC':'Theology', 'GG':'Geography', 'GL':'Geography',
+               'GM':'Languages', 'GR':'Classical Studies',
+               'GS':'Global Studies', 'GV':'Not Applicable', 'HE':'Health',
+               'HI':'History', 'HN':'Health', 'HR':'Human Rights',
+               'HS':'Health', 'ID':'Contemporary', 'IP':'Not Applicable',
+               'IT':'Languages', 'JN':'Journalism', 'KP':'Kinesiology',
+               'KS':'Cultural Studies', 'LA':'Archaeology',
+               'LL':'Languages', 'LY':'Law', 'MA':'Math', 'MB':'Business',
+               'MF':'Business', 'MI':'Languages', 'ML':'Cultural Studies',
+               'MS':'Business', 'MU':'Music', 'MX':'Contemporary',
+               'NE':'Archaeology', 'NO':'Cultural Studies', 'OL':'Business',
+               'PC':'Physics', 'PM':'UWaterloo', 'PO':'Political Science',
+               'PP':'Philosophy', 'PS':'Psychology', 'RE':'Theology',
+               'SC':'Science', 'SE':'Arts', 'SJ':'Contemporary',
+               'SK':'Social Work', 'SL':'Social Work', 'SP':'Languages',
+               'SY':'Sociology', 'TH':'Theology', 'TM':'Business',
+               'WS':'Cultural Studies', 'YC':'Cultural Studies'}
+faculties = {'Anthropology':'Faculty of Arts',
+             'Archaeology':'Faculty of Arts',
+             'Arts':'Faculty of Arts',
+             'Arts (Interdisciplinary)':'Faculty of Arts',
+             'Classical Studies':'Faculty of Arts',
+             'Communication Studies':'Faculty of Arts',
+             'Kriminology':'Faculty of Arts',
+             'Cultural Analysis':'Faculty of Arts',
+             'Cultural Studies':'Faculty of Arts',
+             'English':'Faculty of Arts',
+             'Environment':'Faculty of Arts',
+             'Geography':'Faculty of Arts',
+             'Global Studies':'Faculty of Arts',
+             'History':'Faculty of Arts',
+             'Languages':'Faculty of Arts',
+             'Law':'Faculty of Arts',
+             'Philosophy':'Faculty of Arts',
+             'Political Science':'Faculty of Arts',
+             'Social Work':'Faculty of Arts',
+             'Sociology':'Faculty of Arts',
+             'Contemporary':'Faculty of Arts',
+             'Business':'Faculty of Business',
+             'Economics':'Faculty of Business',
+             'Education':'Faculty of Education',
+             'Health':'Faculty of Human & Social Sciences',
+             'Human Rights':'Faculty of Human & Social Sciences',
+             'Brantford Foundations':'Faculty of Liberal Arts',
+             'Journalism':'Faculty of Liberal Arts',
+             'Music':'Faculty of Music',
+             'Astronomy':'Faculty of Science',
+             'Biology':'Faculty of Science',
+             'Chemistry':'Faculty of Science',
+             'Kinesiology':'Faculty of Science',
+             'Computer Science':'Faculty of Science',
+             'Math':'Faculty of Science',
+             'Physics':'Faculty of Science',
+             'Psychology':'Faculty of Science',
+             'Science':'Faculty of Science',
+             'Theology':'Seminary',
+             'Not Applicable':'Other',
+             'Other':'Other',
+             'UWaterloo':'Other'}
 
 def still_going(tag):
     if type(tag) is bs4.element.NavigableString:
@@ -43,28 +115,50 @@ def main(file_name):
     courses = course_div.find_all(
         attrs={'summary':
                'This layout table is used to present the sections found'})
-    nodes = dict()
+    data = dict()
     for course in courses[:-1]:
         values = course.tbody.tr.th.string.strip().split(' - ')
         if len(values) == 5:
             values = [values[0] + ' - ' + values[1]] + values [2:]
-        name = values[0]
+        course_name = values[0]
         course_id = values[1]
         course_code = values[2]
         course_section = values[3]
+
         while still_going(course.next_sibling):
             course = course.next_sibling
             if course.string and 'Prerequisites:' in course.string:
                 break
+
         prereqs = []
-        if course.string and 'Prerequisites: ' in course.string:
-            prereqs = sorted(get_prereq(course))
+        if course.string is not None and 'Prerequisites: ' in course.string:
+            prereqs = list(map(clean_course, get_prereq(course)))
+
         course_code = clean_course(course_code)
+        department = departments[course_code[:2]]
+        faculty = faculties[department]
+
+        if faculty not in data:
+            data[faculty] = {}
+        if department not in data[faculty]:
+            data[faculty][department] = {}
+            
+        nodes = data[faculty][department]
+        
         if course_code not in nodes:
-            nodes[course_code] = set()
+            nodes[course_code] = {'parents':[], 'children':[]}
         for prereq in prereqs:
-            nodes[course_code].add(prereq)
-    
+            if prereq not in nodes:
+                nodes[prereq] = {'parents':[], 'children':[]}
+            nodes[prereq]['parents'].append(course_code)
+
+        entry = nodes[course_code]
+        entry['name'] = course_name
+        entry['children'] += prereqs
+    return data
+
+
+def dot_output(nodes):
     out_file = open('dep.dot', 'w')
     print('digraph G {', file=out_file)
     sections = []
@@ -87,6 +181,21 @@ def main(file_name):
             print('    {};'.format(node_name), file=out_file)
     print('}', file=out_file)
     out_file.close()
+    print(sorted(sections))
+
+def json_output(nodes):
+    no_names = 0
+    for key in nodes:
+        if 'name' not in nodes[key]:
+            no_names += 1
+            #print(key)
+    print(no_names)
+    with open('dep.json', 'w') as out_file:
+        print(json.dumps(nodes), file=out_file)
+    
+    
+    
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    nodes = main(sys.argv[1])
+    json_output(nodes)
