@@ -57,21 +57,46 @@
 	<script>
 	 window.addEventListener('polymer-ready', function(e) {
 	   
-	 var faculty = document.querySelector('#faculty');
-	 var department = document.querySelector('#department');
-	 var filters = document.querySelector('#filters');
-	 var fac_tags = Object.keys(dep);
-	 console.log(typeof faculty.tags)
-	 console.log('tags', faculty.tags);
-	 console.log('active', faculty.active)
-	 faculty.tags = fac_tags;
-	 var departments = [];
-	 for (var i = 0; i < faculty.active.length; i++) {
-	   var fac = faculty.active[i]
-	   console.log(fac)
-	   departments = departments.concat(Object.keys(dep[fac]));
-	 }
-	 department.tags = departments;
+	   var facultyTag = document.querySelector('#faculty');
+	   var departmentTag = document.querySelector('#department');
+	   faculty.tags = Object.keys(dep);
+	   
+	   window.addEventListener('Faculty-updated', function(e) {
+		 console.log('fac updated');
+		 var departments = [];
+		 facultyActiveList = facultyTag.active['Faculty']
+		 console.log(facultyActiveList)
+		 for (var i = 0; i < facultyActiveList.length; i++) {
+		   var faculty = facultyActiveList[i]
+		   console.log(faculty)
+		   departments = departments.concat(Object.keys(dep[faculty]));
+		 }
+		 departmentTag.tags = departments;
+	   });
+	   
+	   window.addEventListener('Department-updated', function(e) {
+		 console.log('dep updated');
+		 var classes = {};
+		 departmentActiveList = departmentTag.active['Department'];
+		 console.log('dep active list', departmentActiveList)
+		 facultyActiveList = facultyTag.active['Faculty'];
+		 console.log(departmentActiveList);
+		 for (var i = 0; i < departmentActiveList.length; i++) {
+		   var department = departmentActiveList[i];
+		   console.log(department);
+		   for (var j = 0; j < facultyActiveList.length; j++) {
+			 faculty = facultyActiveList[j];
+			 if (dep[faculty][department] != undefined) {
+			   classKeys = Object.keys(dep[faculty][department])
+			   for (var k = 0; k < classKeys.length; k++) {
+				 key = classKeys[k]
+				 classes[key] = dep[faculty][department][key];
+			   }
+			 }
+		   }
+		 }
+		 console.log(classes)
+	   });
 	 });
 	</script>
 	  
@@ -80,7 +105,6 @@
 		<core-toolbar >Course Graph</core-toolbar>
 		<tag-list id="faculty" title="Faculty"></tag-list>
 		<tag-list id="department" title="Department"></tag-list>
-		<tag-list id="filters" title="Filters"></tag-list>
       </core-header-panel>
       
       <div tool>Title</div>
