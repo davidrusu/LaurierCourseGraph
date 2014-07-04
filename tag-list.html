@@ -1,0 +1,65 @@
+<link rel="import"
+	  href="bower_components/paper-button/paper-button.html">
+<polymer-element name="tag-toggle">:
+  <template>
+	<style>
+	 #butt {
+	   background-color: #fff;
+       color: #526E9C;
+	   font-size: 8pt;
+	 }
+	</style>
+	<paper-button id="butt"
+				  label="{{name}}"
+				  raisedButton="{{selected}}"
+				  on-tap="{{tapped}}"></paper-button>
+  </template>
+  <script>
+   console.log('new tag')
+   Polymer("tag-toggle", {
+	 publish: {
+	   name: "Empty",
+	   selected: {
+		 value: true,
+		 reflect: true
+	   }
+	 }, 
+	 tapped: function(event, detail, sender) {
+	   this.selected = !this.selected;
+	   this.fire('tag-tap');
+	   console.log('hey tapper')
+     }
+   });
+  </script>
+</polymer-element>
+<polymer-element name="tag-list">
+  <template>
+	<style>
+	 :host {
+       display: block;
+       width: 100%;
+     }
+     #tag-cloud {
+       margin: 15px;
+     }
+	</style>
+	<div id='tag-cloud'>
+	  <h4>{{title}}</h4>
+	  <template repeat="{{blah in tags}}">
+		<tag-toggle id="tag" name="{{blah}}"></tag-toggle>
+	  </template>
+	</div>
+  </template>
+  <script>
+   Polymer("tag-list", {
+	 publish: {
+	   title: 'Title',
+	   tags:{
+		 value: ['hey', 'hey', 'hey'],
+		 reflect: true
+	   },
+	   selected: []
+	 }
+   });
+  </script>
+</polymer-element>

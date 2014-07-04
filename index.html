@@ -19,7 +19,12 @@
 		  href="bower_components/core-menu/core-submenu.html">
 	<link rel="import"
 		  href="bower_components/core-item/core-item.html">
-	
+	<link rel="import"
+		  href="bower_components/core-ajax/core-ajax.html">
+	<link rel="import"
+		  href="tag-list.html">
+	<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script type="text/javascript" language="javascript" src="dep.json"></script> 
 	<style>
 	 
      html, body {
@@ -49,38 +54,43 @@
   </head>
   
   <body unresolved>
+	<script>
+	 window.addEventListener('polymer-ready', function(e) {
+	 });
+	</script>
+	  
 	<core-scaffold>
       <core-header-panel navigation flex mode="seamed">
 		<core-toolbar >Course Graph</core-toolbar>
-		<core-menu selected="0">
-		  
-		  <core-submenu icon="settings" label="Section">
-			<core-item label="Topic 1"></core-item>
-			<core-item label="Topic 2"></core-item>
-		  </core-submenu>
-		  
-		  <core-submenu icon="settings" label="Filters">
-			<core-item label="Favorite 1"></core-item>
-			<core-item label="Favorite 2"></core-item>
-			<core-item label="Favorite 3"></core-item>
-		  </core-submenu>
-		  
-		</core-menu>
-		<!-- <core-menu selected="0" theme="core-light-theme">
-		<core-submenu icon="settings" label="Section">
-		<core-item icon="settings" label="item1"></core-item>
-		</core-submenu>
-		<core-submenu icon="settings" label="Filters"
-		<core-item icon="settings" label="item2"></core-item>
-		</core-submenu>
-		</core-menu> -->
+		<tag-list id="faculty" title="Faculty"></tag-list>
+		<tag-list id="department" title="Department"></tag-list>
+		<tag-list id="filters" title="Filters"></tag-list>
       </core-header-panel>
       
       <div tool>Title</div>
       
-      <div>Content goes here...</div>
+      <div>
+	  </div>
 	  
 	</core-scaffold>
+
+	<script>
+	 var faculty = document.querySelector('#faculty');
+	 var department = document.querySelector('#department');
+	 var filters = document.querySelector('#filters');
+	 var fac_tags = Object.keys(dep);
+	 console.log(typeof faculty.tags)
+	 console.log('tags', faculty.tags.sort());
+	 faculty.tags = fac_tags;
+	 var departments = [];
+	 console.log(faculty.selected)
+	 for (var i = 0; i < faculty.selected.length; i++) {
+	   fac = faculty.selected[i]
+	   departments = departments.concat(Object.keys(dep.fac));
+	 }
+	 department.tags = departments;
+	 
+	</script>
 	
   </body>
 </html>
