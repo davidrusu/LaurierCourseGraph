@@ -20,7 +20,7 @@
 	 publish: {
 	   name: "Empty",
 	   selected: {
-		 value: true,
+		 value: false,
 		 reflect: true
 	   }
 	 }, 
@@ -32,6 +32,7 @@
    });
   </script>
 </polymer-element>
+
 <polymer-element name="tag-list">
   <template>
 	<style>
@@ -54,11 +55,14 @@
    Polymer("tag-list", {
 	 publish: {
 	   title: 'Title',
-	   tags:{
-		 value: ['hey', 'hey', 'hey'],
+	   active:{
+		 value: [],
 		 reflect: true
 	   },
-	   selected: []
+	   tags:{
+		 value: [],
+		 reflect: true
+	   }
 	 }
    });
   </script>

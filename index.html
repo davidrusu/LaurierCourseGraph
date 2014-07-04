@@ -56,6 +56,22 @@
   <body unresolved>
 	<script>
 	 window.addEventListener('polymer-ready', function(e) {
+	   
+	 var faculty = document.querySelector('#faculty');
+	 var department = document.querySelector('#department');
+	 var filters = document.querySelector('#filters');
+	 var fac_tags = Object.keys(dep);
+	 console.log(typeof faculty.tags)
+	 console.log('tags', faculty.tags);
+	 console.log('active', faculty.active)
+	 faculty.tags = fac_tags;
+	 var departments = [];
+	 for (var i = 0; i < faculty.active.length; i++) {
+	   var fac = faculty.active[i]
+	   console.log(fac)
+	   departments = departments.concat(Object.keys(dep[fac]));
+	 }
+	 department.tags = departments;
 	 });
 	</script>
 	  
@@ -75,20 +91,6 @@
 	</core-scaffold>
 
 	<script>
-	 var faculty = document.querySelector('#faculty');
-	 var department = document.querySelector('#department');
-	 var filters = document.querySelector('#filters');
-	 var fac_tags = Object.keys(dep);
-	 console.log(typeof faculty.tags)
-	 console.log('tags', faculty.tags.sort());
-	 faculty.tags = fac_tags;
-	 var departments = [];
-	 console.log(faculty.selected)
-	 for (var i = 0; i < faculty.selected.length; i++) {
-	   fac = faculty.selected[i]
-	   departments = departments.concat(Object.keys(dep.fac));
-	 }
-	 department.tags = departments;
 	 
 	</script>
 	
