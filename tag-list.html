@@ -1,6 +1,6 @@
 <link rel="import"
 	  href="bower_components/paper-button/paper-button.html">
-<polymer-element name="tag-toggle">:
+<polymer-element name="tag-toggle">
   <template>
 	<style>
 	 #butt {
@@ -22,7 +22,9 @@
 	   parent: "NO PARENT",
 	   active: {},
 	   selected: {
-		 value: false,
+		 value: (this.active != undefined &&
+				 this.active[this.parent] != undefined&&
+				 this.active[this.parent].indexOf(this.name) != -1),
 		 reflect: true
 	   }
 	 },
@@ -44,17 +46,18 @@
   </script>
 </polymer-element>
 
+
 <polymer-element name="tag-list">
   <template>
-	<style>
-	 :host {
-       display: block;
-       width: 100%;
-     }
-     #tag-cloud {
-       margin: 15px;
-     }
-	</style>
+	<!-- <style>
+	:host {
+    display: block;
+    width: 100%;
+    }
+    #tag-cloud {
+    margin: 15px;
+    }
+	</style> -->
 	<div id='tag-cloud'>
 	  <h4>{{title}}</h4>
 	  <template repeat="{{tag in tags}}">
@@ -64,17 +67,18 @@
   </template>
   <script>
    Polymer("tag-list", {
+	 tags: ['a', 'b', 'c'],
 	 publish: {
 	   title: 'Title',
-	   tags:{
-		 value: [],
-		 reflect: true
-	   },
 	   
 	   active: {
 		 value: {},
 		 reflect: true
 	   }
+	 },
+	 created: function() {
+	   console.log('created');
+	   console.log(this.tags);
 	 }
    });
   </script>
