@@ -99,15 +99,15 @@ window.addEventListener('polymer-ready', function(e) {
           var dy = a.y - b.y;
           var dist = p.max(10, p.sqrt(dx * dx + dy * dy));
 
-          var restingLength = 100;
-          var k = 0.1;
+          var restingLength = 50;
+          var k = 0.01;
           var correction = 0
 
           if (a.children.indexOf(b) == -1 &&
                 b.children.indexOf(a) == -1) {
             // if nodes are not related
-            restingLength = 600;
-            k *= 0.1 * 1/dist //(1+depthDist*depthDist)
+            restingLength = 500;
+            k *= 1 * 1/dist //(1+depthDist*depthDist)
               //k = -1/(dist*dist) * 10;
           } else {
               // nodes are related
@@ -123,6 +123,11 @@ window.addEventListener('polymer-ready', function(e) {
           var d = restingLength - dist
           var fx = k * d * dx / dist
           var fy = k * d * dy / dist
+            padding = 50 * 0.5;
+            if (dist < padding) {
+                a.vx += (padding-dist)*0.5 * dx /dist;
+                a.vy += (padding-dist)*0.5 * dy / dist;
+            }
           a.vx += fx + correction
           a.vy += fy
           b.vx -= fx + correction
