@@ -147,14 +147,19 @@ def main(file_name):
         
         if course_code not in nodes:
             nodes[course_code] = {'parents':[], 'children':[]}
+        
+        entry = nodes[course_code]
+        entry['name'] = course_name
+        
         for prereq in prereqs:
             if prereq not in nodes:
                 nodes[prereq] = {'parents':[], 'children':[]}
-            nodes[prereq]['parents'].append(course_code)
+            if course_code not in nodes[prereq]['parents']:
+                nodes[prereq]['parents'].append(course_code)
+            if prereq not in entry['children']:
+                entry['children'].append(prereq)
 
-        entry = nodes[course_code]
-        entry['name'] = course_name
-        entry['children'] += prereqs
+        
     return data
 
 

@@ -41,6 +41,9 @@
 		 active_list.push(this.name);
 	   }
 	   this.fire(this.parent + '-updated')
+     },
+     created: function() {
+       
      }
    });
   </script>
@@ -75,10 +78,6 @@
 		 value: {},
 		 reflect: true
 	   }
-	 },
-	 created: function() {
-	   console.log('created');
-	   console.log(this.tags);
 	 }
    });
   </script>
