@@ -62,6 +62,11 @@ window.addEventListener('polymer-ready', function(e) {
           child = children[i];
           node.add_dep(createNode(child));
         }
+        var parents = course.parents;
+        for (var i=0; i < parents.length; i++) {
+          parent = parents[i];
+          node.addParent(createNode(parent));
+        }
       }
       maxDepth = p.max(maxDepth, node.depth());
       return node;
@@ -82,6 +87,19 @@ window.addEventListener('polymer-ready', function(e) {
       }
       lastMouse[0] = p.mouseX;
       lastMouse[1] = p.mouseY;
+    }
+
+    p.mouseClicked = function() {
+      var actualMouseX = p.mouseX - p.width/2 - shift[0]
+      var actualMouseY = p.mouseY - p.height/2 - shift[1]
+      for (var i = 0; i < nodes.length; i ++) {
+        var node = nodes[i];
+        if (p.dist(node.x, node.y, actualMouseX, actualMouseY) < 10) {
+          p.println('clicked ' + node.name);
+          node.select();
+          return;
+        }
+      }
     }
 
     function springDynamics() {
@@ -221,7 +239,6 @@ window.addEventListener('polymer-ready', function(e) {
         var node = nodes[i];
         node.draw();
       }
-
     };
 
    
@@ -232,12 +249,17 @@ window.addEventListener('polymer-ready', function(e) {
       this.vx = 0;
       this.vy = 0;
       this.children = [];
-      this.parent = [];
+      this.parents = [];
       this.rate = p.random(20, 1000);
+      this.selected = false;
 
       this.add_dep = function(node) {
         this.children.push(node);
       };
+
+      this.addParent = function(node) {
+        this.parents.push(node);
+      }
 
       this.update_dep = function() {
         var time = 10000;
@@ -261,6 +283,18 @@ window.addEventListener('polymer-ready', function(e) {
           this.vy += fy - pushStrength;
           d.vx -= fx;
           d.vy -= fy - pushStrength; // we push dependencies down
+        }
+      }
+
+      this.select = function() {
+        this.selectRecursive(!this.selected);
+      }
+
+      this.selectRecursive = function(state) {
+        this.selected = state;
+        for (var i = 0; i < this.parents.length; i++) {
+          var parent = this.parents[i];
+          parent.selectRecursive(state);
         }
       }
 
@@ -301,17 +335,22 @@ window.addEventListener('polymer-ready', function(e) {
         p.text(this.name, this.x, this.y);
         //p.text('vx ' + this.vx, this.x, this.y + 12);
         //p.text('vy ' + this.vy, this.x, this.y + 24);
-        for (var i = 0; i < this.children.length; i++) {
-          var d = this.children[i];
-          arrow(d.x, d.y, this.x, this.y);
+        if (this.selected) {
+          p.stroke(255, 0, 0);
+          p.fill(255, 0, 0);
+        } else {
+          p.stroke(0, 0, 0, 50);
+          p.fill(0, 0, 0, 50);
+        }
+        for (var i = 0; i < this.parents.length; i++) {
+          var d = this.parents[i];
+          arrow(this.x, this.y, d.x, d.y);
         }
       };
     };
   };
  
   function arrow(x1, y1, x2, y2) {
-    p.fill(0, 0, 0, 50);
-    p.stroke(0, 0, 0, 50);
     p.line(x1, y1, x2, y2);
     var dx = x2-x1;
     var dy = y2-y1;
@@ -320,7 +359,6 @@ window.addEventListener('polymer-ready', function(e) {
     var a = p.atan2(-dx, dy);
     p.rotate(a);
     var r = 5;
-    p.fill(0);
     p.triangle(0, 0, -r/2, -r * 2, r/2, -r * 2);
     p.popMatrix();
   };
