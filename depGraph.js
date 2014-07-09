@@ -1,18 +1,17 @@
 window.addEventListener('polymer-ready', function(e) {
   function sketchProc(p) {
     var nodes = [];
-    var orphanNodes = []
-    var nodeDict = {};
-    var drawing = true;
-    var scale = 1;
-    var shift = [0,0];
-    var lastMouse = [p.mouseX, p.mouseY]
-    var pointer = [p.mouseX, p.mouseY] // actual pointer position in 
+    var orphanNodes = [] // nodes with no parents or children
+    var nodeDict = {}; // dictionary that store nodes for quick lookup
+    var shift = [0,0]; // translation vector for panning
+    var lastMouse = [p.mouseX, p.mouseY] // the previous mouse position
     var startTime = p.millis();
     var mousePressed = false;
-    var maxDepth = 0;
+    var maxDepth = 0; 
 
     p.setup = function() {
+      // size is set in the draw method so that scaling
+      // the window will update the canvas size
       p.frameRate(30);
     }
 
@@ -28,11 +27,23 @@ window.addEventListener('polymer-ready', function(e) {
       pointer = [p.mouseX, p.mouseX];
       nodes = [];
       nodeDict = {};
-      console.log(nodeDict)
-
-      console.log('refresh')
 
       var keys = Object.keys(courses);
+      for (var i = 0; i < keys.length; i++) {
+        var course_name = keys[i];
+        var course = courses[course_name];
+        for (var j = 0; j < course.children.length; j++) {
+          var child = course.children[j];
+          if (courses[child] == undefined) {
+            continue;
+          }
+          var childNode = courses[child];
+          if (childNode.parents.indexOf(course_name) == -1) {
+            childNode.parents.push(course_name);
+          }
+        }
+      }
+      
       for (var i = 0; i < keys.length; i++) {
         var course_name = keys[i];
         createNode(course_name);
@@ -50,10 +61,13 @@ window.addEventListener('polymer-ready', function(e) {
         return nodeDict[key];
       }
       var course = courses[key];
+      console.log(key, course);
+      if (course == undefined) {
+        console.log(nodeDict, courses);
+      }
       var node = new Node(key, p.random(p.width), p.random(p.height));
       nodeDict[key] = node;
       if (course.children.length == 0 && course.parents.length == 0) {
-        p.println(key);
         orphanNodes.push(node);
       } else {
         nodes.push(node);
@@ -65,6 +79,7 @@ window.addEventListener('polymer-ready', function(e) {
         var parents = course.parents;
         for (var i=0; i < parents.length; i++) {
           parent = parents[i];
+          console.log('parent', key);
           node.addParent(createNode(parent));
         }
       }
@@ -95,7 +110,6 @@ window.addEventListener('polymer-ready', function(e) {
       for (var i = 0; i < nodes.length; i ++) {
         var node = nodes[i];
         if (p.dist(node.x, node.y, actualMouseX, actualMouseY) < 10) {
-          p.println('clicked ' + node.name);
           node.select();
           return;
         }
@@ -117,7 +131,7 @@ window.addEventListener('polymer-ready', function(e) {
           var dy = a.y - b.y;
           var dist = p.max(10, p.sqrt(dx * dx + dy * dy));
 
-          var restingLength = 50;
+          var restingLength = 150;
           var k = 0.01;
           var correction = 0
 
@@ -151,30 +165,6 @@ window.addEventListener('polymer-ready', function(e) {
           b.vx -= fx + correction
           b.vy -= fy
         }
-        var duration = 10000;
-        var time = millis()
-        //if (time < duration) {
-          p.stroke(0);
-          var seperation = 200;
-          var depthValley = depthA * seperation - maxDepth * seperation / 2;
-          p.line(depthValley, -1e10, depthValley, 1e10);
-          var deltaX =  depthValley - a.x
-          var denum = millis + 30
-          var crossfade = p.min(duration, time)/duration
-          var strength = crossfade + (1-crossfade) * (p.sin(time / 200) + 1)/2;
-          //p.println(strength);
-          //if (p.abs(deltaX) > strength) {
-          //  deltaX = deltaX / p.abs(deltaX) * strength;
-          //}
-          //p.println('before ' + a.x)
-          //a.x = depthValley * (1-strength) + a.x *(strength);
-          //a.vx += deltaX * strength * 1// + a.x*(1-strength) ;
-          //p.println(a.x);
-          //a.vx = 0//a.vx * (1-strength);
-          //a.vy = 0
-        //} else if (time > duration *1.5) {
-        //  startTime = p.millis();
-        //}
       }
     }
 
@@ -328,9 +318,6 @@ window.addEventListener('polymer-ready', function(e) {
         p.stroke(0);
         p.fill(255);
         p.ellipse(this.x, this.y, 10, 10);
-        if (!drawing) {
-          return;
-        }
         p.fill(0);
         p.text(this.name, this.x, this.y);
         //p.text('vx ' + this.vx, this.x, this.y + 12);

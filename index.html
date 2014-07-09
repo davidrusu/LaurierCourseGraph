@@ -48,10 +48,7 @@
 	   
 	   var facultyTag = document.querySelector('#faculty');
 	   var departmentTag = document.querySelector('#department');
-	   console.log(facultyTag)
-	   console.log('before fac tags', facultyTag.tags)
 	   facultyTag.tags = Object.keys(dep);
-	   console.log('fac tags', facultyTag.tags)
 
 	   function updateCourses() {
 		 departmentActiveList = departmentTag.active['Department'];
