@@ -33,7 +33,6 @@ window.addEventListener('polymer-ready', function(e) {
             var childNode = courses[child];
             var childParents = childNode.parents;
             if (childParents.indexOf(courseName) == -1) {
-              console.log('fixing parent', courseName);
               childParents.push(courseName);
             }
           }
@@ -81,14 +80,13 @@ window.addEventListener('polymer-ready', function(e) {
     p.mouseClicked = function() {
       var actualMouseX = p.mouseX - p.width/2 - shift[0]
       var actualMouseY = p.mouseY - p.height/2 - shift[1]
-      
-      for (var node in nodes) {
+      nodes.forEach(function(node) {
         var mouseNodeDist = p.dist(node.x, node.y, actualMouseX, actualMouseY);
         if (mouseNodeDist < 10) {
           node.select();
           return;
         }
-      }
+      });
     }
 
     function updateMouse() {
