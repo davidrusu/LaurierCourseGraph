@@ -5,7 +5,6 @@ window.addEventListener('polymer-ready', function(e) {
     var nodeDict = {}; // dictionary that store nodes for quick lookup
     var shift = [0,0]; // translation vector for panning
     var lastMouse = [p.mouseX, p.mouseY] // the previous mouse position
-    var startTime = p.millis();
     var mousePressed = false;
     var maxDepth = 0; 
 
@@ -19,69 +18,53 @@ window.addEventListener('polymer-ready', function(e) {
       if (!courses ||  !refresh) {
         return;
       }
+      refresh = false;
+      
       maxDepth = 0;
-      startTime = millis();
-      scale = 1;
       shift = [0, 0];
       lastMouse = [p.mouseX, p.mouseY];
-      pointer = [p.mouseX, p.mouseX];
       nodes = [];
       nodeDict = {};
 
-      var keys = Object.keys(courses);
-      for (var i = 0; i < keys.length; i++) {
-        var course_name = keys[i];
-        var course = courses[course_name];
-        for (var j = 0; j < course.children.length; j++) {
-          var child = course.children[j];
-          if (courses[child] == undefined) {
-            continue;
-          }
-          var childNode = courses[child];
-          if (childNode.parents.indexOf(course_name) == -1) {
-            childNode.parents.push(course_name);
+      for (var courseName in courses) {
+        var course = courses[courseName];
+        for (var child in course.children) {
+          if (courses[child] != undefined) {
+            var childNode = courses[child];
+            var childParents = childNode.parents;
+            if (childParents.indexOf(courseName) == -1) {
+              console.log('fixing parent', courseName);
+              childParents.push(courseName);
+            }
           }
         }
       }
       
-      for (var i = 0; i < keys.length; i++) {
-        var course_name = keys[i];
-        createNode(course_name);
+      for (var courseName in courses) {
+        createNode(courseName);
       }
-      refresh = false;
     }
 
-    function millis() {
-      return p.millis() - startTime;
-    }
-
-
-    function createNode(key) {
-      if (nodeDict[key] != undefined) {
-        return nodeDict[key];
+    function createNode(name) {
+      if (nodeDict[name] != undefined) {
+        return nodeDict[name];
       }
-      var course = courses[key];
-      console.log(key, course);
-      if (course == undefined) {
-        console.log(nodeDict, courses);
-      }
-      var node = new Node(key, p.random(p.width), p.random(p.height));
-      nodeDict[key] = node;
-      if (course.children.length == 0 && course.parents.length == 0) {
+      var course = courses[name];
+      var children = course.children;
+      var parents = course.parents;
+
+      var node = new Node(name, p.random(p.width), p.random(p.height));
+      nodeDict[name] = node;
+      if (children.length == 0 && parents.length == 0) {
         orphanNodes.push(node);
       } else {
-        nodes.push(node);
-        var children = course.children;
-        for (var i=0; i < children.length; i++) {
-          child = children[i];
-          node.add_dep(createNode(child));
-        }
-        var parents = course.parents;
-        for (var i=0; i < parents.length; i++) {
-          parent = parents[i];
-          console.log('parent', key);
+        nodes.push(node)
+        children.forEach(function(child) {
+          node.addChild(createNode(child));
+        });
+        parents.forEach(function(parent) {
           node.addParent(createNode(parent));
-        }
+        });
       }
       maxDepth = p.max(maxDepth, node.depth());
       return node;
@@ -95,6 +78,19 @@ window.addEventListener('polymer-ready', function(e) {
       mousePressed = false;
     }
 
+    p.mouseClicked = function() {
+      var actualMouseX = p.mouseX - p.width/2 - shift[0]
+      var actualMouseY = p.mouseY - p.height/2 - shift[1]
+      
+      for (var node in nodes) {
+        var mouseNodeDist = p.dist(node.x, node.y, actualMouseX, actualMouseY);
+        if (mouseNodeDist < 10) {
+          node.select();
+          return;
+        }
+      }
+    }
+
     function updateMouse() {
       if (mousePressed) {
         shift[0] += p.mouseX - lastMouse[0]
@@ -104,66 +100,46 @@ window.addEventListener('polymer-ready', function(e) {
       lastMouse[1] = p.mouseY;
     }
 
-    p.mouseClicked = function() {
-      var actualMouseX = p.mouseX - p.width/2 - shift[0]
-      var actualMouseY = p.mouseY - p.height/2 - shift[1]
-      for (var i = 0; i < nodes.length; i ++) {
-        var node = nodes[i];
-        if (p.dist(node.x, node.y, actualMouseX, actualMouseY) < 10) {
-          node.select();
-          return;
-        }
-      }
-    }
-
     function springDynamics() {
-      for (var i=0; i < nodes.length; i++) {
+      for (var i = 0; i < nodes.length; i++) {
         var a = nodes[i];
-        var depthA = a.depth();
-
+        var childrenA = a.children;
         for (var j=i+1; j < nodes.length; j++) {
           var b = nodes[j];
-          var depthB = b.depth();
-
-          var depthDist = p.abs(depthA - depthB);
-
+          var childrenB = b.children;
           var dx = a.x - b.x;
           var dy = a.y - b.y;
           var dist = p.max(10, p.sqrt(dx * dx + dy * dy));
 
           var restingLength = 150;
           var k = 0.01;
-          var correction = 0
+          var hierarchyPush = 0;
 
-          if (a.children.indexOf(b) == -1 &&
-                b.children.indexOf(a) == -1) {
-            // if nodes are not related
+          if (childrenA.indexOf(b) == -1 &&
+              childrenB.indexOf(a) == -1) {
             restingLength = 500;
-            k *= 1 * 1/dist //(1+depthDist*depthDist)
-              //k = -1/(dist*dist) * 10;
+            k *= 1 * 1/dist;
           } else {
               // nodes are related
-              pushStrength = 1;
-              if (a.children.indexOf(b) == -1) {
-                  correction = -pushStrength;
-              } else {
-                  correction = pushStrength;
-              }
+            hierarchyPush = 1;
+            if (childrenA.indexOf(b) == -1) {
+              hierarchyPush *= -1;
+            }
           }
-            /* var fx = k * (restingLength - dist) * dx / dist
-          var fy = k * (restingLength - dist) * dy / dist */
           var d = restingLength - dist
           var fx = k * d * dx / dist
           var fy = k * d * dy / dist
-            padding = 50 * 0.5;
-            if (dist < padding) {
-                a.vx += (padding-dist)*0.5 * dx /dist;
-                a.vy += (padding-dist)*0.5 * dy / dist;
-            }
-          a.vx += fx + correction
-          a.vy += fy
-          b.vx -= fx + correction
-          b.vy -= fy
+
+          var padding = 25;
+          if (dist < padding) {
+            var nudge = (padding-dist) * 0.5;
+            a.vx += nudge * dx / dist;
+            a.vy += nudge * dy / dist;
+          }
+          a.vx += fx + hierarchyPush;
+          a.vy += fy;
+          b.vx -= fx + hierarchyPush;
+          b.vy -= fy;
         }
       }
     }
@@ -171,66 +147,55 @@ window.addEventListener('polymer-ready', function(e) {
     function update() {
       reset();
       updateMouse();
-      
       springDynamics();
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        node.update();
-      }
+      nodes.forEach(function(node) {node.update()});
     }
 
     p.draw = function() {
       p.size(w, h)
-      
-      
       update();
-      p.background(255);
-      var min_x = 1e1000;
-      var min_y = 1e1000;
-      var max_x = -1e1000;
-      var max_y = -1e1000;
-      var sum_x = 0;
-      var sum_y = 0;
-      var n = 0.0;
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        if (node.x < min_x) {
-          min_x = node.x
-        }
-        if (node.y < min_y) {
-          min_y = node.y;
-        }
-        if (node.x > max_x) {
-          max_x = node.x;
-        }
-        if (node.y > max_y) {
-          max_y = node.y;
-        }
-        n += 1;
-        sum_x += node.x;
-        sum_y += node.y;
-      }
-      var span_x = max_x - min_x;
-      var span_y = max_y - min_y;
-      var centerX = sum_x / n;//(max_x + min_x) / 2;
-      var centerY = sum_y / n;//(max_y + min_y) / 2;
-      var translateX = p.width/2 + shift[0];
-      var translateY = p.height/2 + shift[1];
-      /* var s = p.min(p.width/span_x, p.height/span_y) * 0.9; */
+      recenterNodes();
       p.fill(0);
-      p.translate(translateX, translateY);
-      /* p.scale(s, s); */
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        node.x -= centerX;
-        node.y -= centerY;
-      }
-      for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        node.draw();
-      }
+      p.background(255);
+      nodes.forEach(function(node) {node.draw()});
     };
 
+    function recenterNodes() {
+      var sumX = 0;
+      var sumY = 0;
+      
+      nodes.forEach(function(node) {
+        sumX += node.x;
+        sumY += node.y;
+      });
+
+      var centerX = sumX / nodes.length;
+      var centerY = sumY / nodes.length;
+
+      nodes.forEach(function(node) {
+        node.x -= centerX;
+        node.y -= centerY;
+      })
+
+      var translateX = p.width/2 + shift[0];
+      var translateY = p.height/2 + shift[1];
+      p.translate(translateX, translateY);
+    }
+    
+    function arrow(x1, y1, x2, y2, param) {
+      p.line(x1, y1, x2, y2);
+
+      var dx = x2-x1;
+      var dy = y2-y1;
+
+      p.pushMatrix();
+      p.translate(x1 + dx * param, y1 + dy * param);
+      var a = p.atan2(-dx, dy);
+      p.rotate(a);
+      var r = 5;
+      p.triangle(0, 0, -r/2, -r * 2, r/2, -r * 2);
+      p.popMatrix();
+    }
    
     function Node(name, x, y) {
       this.name = name;
@@ -243,37 +208,12 @@ window.addEventListener('polymer-ready', function(e) {
       this.rate = p.random(20, 1000);
       this.selected = false;
 
-      this.add_dep = function(node) {
+      this.addChild = function(node) {
         this.children.push(node);
       };
 
       this.addParent = function(node) {
         this.parents.push(node);
-      }
-
-      this.update_dep = function() {
-        var time = 10000;
-        var angle = p.sin(p.millis() / this.rate);
-        var timeScale = p.max(0, time - p.millis()) / time;
-
-        var k = 0.001 + 0.1*(angle+1)*timeScale;
-        var rest = 50 + 50*angle*timeScale;
-        var pushStrength = 0.01;
-        for (var i = 0; i < this.children.length; i++) {
-          var d = this.children[i];
-          var dx = d.x - this.x;
-          var dy = d.y - this.y;
-          var dist = p.sqrt(dx * dx + dy * dy);
-          var length = rest - dist;
-          var vec =-k * length / dist ;
-          var fx = vec * dx;
-          var fy = vec * dy;
-          
-          this.vx += fx;
-          this.vy += fy - pushStrength;
-          d.vx -= fx;
-          d.vy -= fy - pushStrength; // we push dependencies down
-        }
       }
 
       this.select = function() {
@@ -282,46 +222,35 @@ window.addEventListener('polymer-ready', function(e) {
 
       this.selectRecursive = function(state) {
         this.selected = state;
-        for (var i = 0; i < this.parents.length; i++) {
-          var parent = this.parents[i];
+        this.parents.forEach(function(parent) {
           parent.selectRecursive(state);
-        }
+        });
       }
 
       this.update = function() {
-        //this.update_dep();
         this.x += this.vx;
         this.y += this.vy;
 
         var air = 0.9;
         this.vx *= air;
         this.vy *= air;
-        //this.vy += -0.5 * this.children.length;
       }
 
       this.depth = function() {
-        if (this.children.length == 0) {
-          return 1;
-        }
-
-        var max_depth = 0;
-        for (var i = 0; i < this.children.length; i++) {
-          var d = this.children[i];
-          var ddepth = d.depth();
-          if (ddepth > max_depth) {
-            max_depth = ddepth;
-          }
-        }
-        return max_depth + 1;
+        var maxDepth = 0;
+        this.children.forEach(function(child) {
+          maxDepth = p.max(maxDepth, child.depth());
+        });
+        return maxDepth + 1;
       };
+      
       this.draw = function() {
         p.stroke(0);
         p.fill(255);
         p.ellipse(this.x, this.y, 10, 10);
         p.fill(0);
         p.text(this.name, this.x, this.y);
-        //p.text('vx ' + this.vx, this.x, this.y + 12);
-        //p.text('vy ' + this.vy, this.x, this.y + 24);
+
         if (this.selected) {
           p.stroke(255, 0, 0);
           p.fill(255, 0, 0);
@@ -329,26 +258,16 @@ window.addEventListener('polymer-ready', function(e) {
           p.stroke(0, 0, 0, 50);
           p.fill(0, 0, 0, 50);
         }
+
         for (var i = 0; i < this.parents.length; i++) {
-          var d = this.parents[i];
-          arrow(this.x, this.y, d.x, d.y);
+          var parent = this.parents[i];
+          arrow(this.x, this.y, parent.x, parent.y, 0.5);
         }
       };
     };
   };
  
-  function arrow(x1, y1, x2, y2) {
-    p.line(x1, y1, x2, y2);
-    var dx = x2-x1;
-    var dy = y2-y1;
-    p.pushMatrix();
-    p.translate(x1 + dx / 2, y1 + dy / 2);
-    var a = p.atan2(-dx, dy);
-    p.rotate(a);
-    var r = 5;
-    p.triangle(0, 0, -r/2, -r * 2, r/2, -r * 2);
-    p.popMatrix();
-  };
+  
 
   var canvas = document.getElementById("mycanvas");
   var p = new Processing(canvas, sketchProc);
