@@ -1,25 +1,28 @@
+"use strict";
+var courses = {}; // filled with courses when user clicks tags
+var refresh = true; // refresh is set to true whenever courses is modified
 window.addEventListener('polymer-ready', function(e) {
   function sketchProc(p) {
     var nodes = [];
-    var orphanNodes = [] // nodes with no parents or children
+    var orphanNodes = []; // nodes with no parents or children
     var nodeDict = {}; // dictionary that store nodes for quick lookup
-    var shift = [0,0]; // translation vector for panning
-    var lastMouse = [p.mouseX, p.mouseY] // the previous mouse position
+    var shift = [0, 0]; // translation vector for panning
+    var lastMouse = [p.mouseX, p.mouseY]; // the previous mouse position
     var mousePressed = false;
-    var maxDepth = 0; 
+    var maxDepth = 0;
 
     p.setup = function() {
       // size is set in the draw method so that scaling
       // the window will update the canvas size
       p.frameRate(30);
-    }
+    };
 
     function reset() {
       if (!courses ||  !refresh) {
         return;
       }
       refresh = false;
-      
+
       maxDepth = 0;
       shift = [0, 0];
       lastMouse = [p.mouseX, p.mouseY];
@@ -29,10 +32,10 @@ window.addEventListener('polymer-ready', function(e) {
       for (var courseName in courses) {
         var course = courses[courseName];
         for (var child in course.children) {
-          if (courses[child] != undefined) {
+          if (courses[child] !== undefined) {
             var childNode = courses[child];
             var childParents = childNode.parents;
-            if (childParents.indexOf(courseName) == -1) {
+            if (childParents.indexOf(courseName) === -1) {
               childParents.push(courseName);
             }
           }
@@ -45,7 +48,7 @@ window.addEventListener('polymer-ready', function(e) {
     }
 
     function createNode(name) {
-      if (nodeDict[name] != undefined) {
+      if (nodeDict[name] !== undefined) {
         return nodeDict[name];
       }
       var course = courses[name];
@@ -54,10 +57,10 @@ window.addEventListener('polymer-ready', function(e) {
 
       var node = new Node(name, p.random(p.width), p.random(p.height));
       nodeDict[name] = node;
-      if (children.length == 0 && parents.length == 0) {
+      if (children.length === 0 && parents.length === 0) {
         orphanNodes.push(node);
       } else {
-        nodes.push(node)
+        nodes.push(node);
         children.forEach(function(child) {
           node.addChild(createNode(child));
         });
@@ -71,15 +74,15 @@ window.addEventListener('polymer-ready', function(e) {
 
     p.mousePressed = function() {
       mousePressed = true;
-    }
+    };
 
     p.mouseReleased = function() {
       mousePressed = false;
-    }
+    };
 
     p.mouseClicked = function() {
-      var actualMouseX = p.mouseX - p.width/2 - shift[0]
-      var actualMouseY = p.mouseY - p.height/2 - shift[1]
+      var actualMouseX = p.mouseX - p.width/2 - shift[0];
+      var actualMouseY = p.mouseY - p.height/2 - shift[1];
       nodes.forEach(function(node) {
         var mouseNodeDist = p.dist(node.x, node.y, actualMouseX, actualMouseY);
         if (mouseNodeDist < 10) {
@@ -87,12 +90,12 @@ window.addEventListener('polymer-ready', function(e) {
           return;
         }
       });
-    }
+    };
 
     function updateMouse() {
       if (mousePressed) {
-        shift[0] += p.mouseX - lastMouse[0]
-        shift[1] += p.mouseY - lastMouse[1]
+        shift[0] += p.mouseX - lastMouse[0];
+        shift[1] += p.mouseY - lastMouse[1];
       }
       lastMouse[0] = p.mouseX;
       lastMouse[1] = p.mouseY;
@@ -113,20 +116,20 @@ window.addEventListener('polymer-ready', function(e) {
           var k = 0.01;
           var hierarchyPush = 0;
 
-          if (childrenA.indexOf(b) == -1 &&
-              childrenB.indexOf(a) == -1) {
+          if (childrenA.indexOf(b) === -1 &&
+              childrenB.indexOf(a) === -1) {
             restingLength = 500;
             k *= 1 * 1/dist;
           } else {
               // nodes are related
             hierarchyPush = 1;
-            if (childrenA.indexOf(b) == -1) {
+            if (childrenA.indexOf(b) === -1) {
               hierarchyPush *= -1;
             }
           }
-          var d = restingLength - dist
-          var fx = k * d * dx / dist
-          var fy = k * d * dy / dist
+          var d = restingLength - dist;
+          var fx = k * d * dx / dist;
+          var fy = k * d * dy / dist;
 
           var padding = 25;
           if (dist < padding) {
@@ -146,16 +149,16 @@ window.addEventListener('polymer-ready', function(e) {
       reset();
       updateMouse();
       springDynamics();
-      nodes.forEach(function(node) {node.update()});
+      nodes.forEach(function(node) {node.update();});
     }
 
     p.draw = function() {
-      p.size(w, h)
+      p.size(w, h);
       update();
       recenterNodes();
       p.fill(0);
       p.background(255);
-      nodes.forEach(function(node) {node.draw()});
+      nodes.forEach(function(node) {node.draw();});
     };
 
     function recenterNodes() {
@@ -173,7 +176,7 @@ window.addEventListener('polymer-ready', function(e) {
       nodes.forEach(function(node) {
         node.x -= centerX;
         node.y -= centerY;
-      })
+      });
 
       var translateX = p.width/2 + shift[0];
       var translateY = p.height/2 + shift[1];
@@ -212,18 +215,18 @@ window.addEventListener('polymer-ready', function(e) {
 
       this.addParent = function(node) {
         this.parents.push(node);
-      }
+      };
 
       this.select = function() {
         this.selectRecursive(!this.selected);
-      }
+      };
 
       this.selectRecursive = function(state) {
         this.selected = state;
         this.parents.forEach(function(parent) {
           parent.selectRecursive(state);
         });
-      }
+      };
 
       this.update = function() {
         this.x += this.vx;
@@ -232,7 +235,7 @@ window.addEventListener('polymer-ready', function(e) {
         var air = 0.9;
         this.vx *= air;
         this.vy *= air;
-      }
+      };
 
       this.depth = function() {
         var maxDepth = 0;
@@ -246,6 +249,7 @@ window.addEventListener('polymer-ready', function(e) {
         p.stroke(0);
         p.fill(255);
         p.ellipse(this.x, this.y, 10, 10);
+
         p.fill(0);
         p.text(this.name, this.x, this.y);
 
@@ -262,10 +266,8 @@ window.addEventListener('polymer-ready', function(e) {
           arrow(this.x, this.y, parent.x, parent.y, 0.5);
         }
       };
-    };
-  };
- 
-  
+    }
+  }
 
   var canvas = document.getElementById("mycanvas");
   var p = new Processing(canvas, sketchProc);
