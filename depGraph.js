@@ -45,6 +45,7 @@ window.addEventListener('polymer-ready', function(e) {
       for (var courseName in courses) {
         createNode(courseName);
       }
+      console.log('num nodes', nodes.length);
     }
 
     function createNode(name) {
@@ -108,42 +109,62 @@ window.addEventListener('polymer-ready', function(e) {
         for (var j=i+1; j < nodes.length; j++) {
           var b = nodes[j];
           var childrenB = b.children;
+          var aRelatives = a.parents.length;
+          var bRelatives = b.parents.length;
           var dx = a.x - b.x;
           var dy = a.y - b.y;
-          var dist = p.max(10, p.sqrt(dx * dx + dy * dy));
+          var dist = p.max(1, p.sqrt(dx * dx + dy * dy));
 
-          var restingLength = 200;//+  10* (p.millis() % 10) / (p.millis() % 100 + 1);
-          var k = 0.01;
+          var restingLength = p.min(aRelatives,bRelatives) * 20 + 100;
+          var k = 0.05;
           var hierarchyPush = 0;
 
+          var fx = 0;
+          var fy = 0;
           if (childrenA.indexOf(b) === -1 &&
               childrenB.indexOf(a) === -1) {
-            restingLength = 500;
-            k *= 1 * 1/dist;
-            
-            var push = p.min(0.01, p.abs(1/dy)) * dy /p.abs(dy);
-            a.vy += push;
-            b.vy -= push;
+            restingLength = 7 * nodes.length;
+            k = 1/restingLength * 0.01;
+            var push = (bRelatives - aRelatives) * 1/dist;//p.min(0.1, 1 / p.abs(dy * dy)) * dy / p.abs(dy);
+            //push = p.min(1, 1/p.abs(dx)) * 0.2;
+            //a.vy -= push;
+            //b.vy += push;
           } else {
               // nodes are related
+            var child;
+            var parent;
             hierarchyPush = 1;
             if (childrenA.indexOf(b) === -1) {
-              hierarchyPush *= -1;
+              hierarchyPush *= -2;
+              child = a;
+              parent = b;
+            } else {
+              child = b;
+              parent = a;
             }
+            restingLength = p.min(500, child.parents.length * 50 + 50);
+          }
+          
+          var alignForce = p.min(0.5, 1/p.max(1, p.abs(dx)) * 1/dist) * dx / p.abs(dx) * 2;
+          a.vx -= alignForce;
+          b.vx += alignForce;
+          
+
+          var padding = 60;
+          if (dist < padding) {
+            var nudge = 1/(dist) * 20;
+            a.vx += nudge * dx / dist * 0.1;
+            a.vy += nudge * dy / dist;
+            b.vx -= nudge * dx / dist * 0.1;
+            b.vy -= nudge * dy / dist;
+            
           }
           var d = restingLength - dist;
-          var fx = k * d * dx / dist;
-          var fy = k * d * dy / dist;
-
-          var padding = 25;
-          if (dist < padding) {
-            var nudge = (padding-dist) * 0.5;
-            a.vx += nudge * dx / dist;
-            a.vy += nudge * dy / dist;
-          }
-          a.vx += fx + hierarchyPush;
+          fx = k * d * dx / dist + hierarchyPush;
+          fy = k * d * dy / dist;
+          a.vx += fx;
           a.vy += fy;
-          b.vx -= fx + hierarchyPush;
+          b.vx -= fx;
           b.vy -= fy;
         }
       }
@@ -163,6 +184,7 @@ window.addEventListener('polymer-ready', function(e) {
       p.fill(0);
       p.background(255);
       nodes.forEach(function(node) {node.drawArrows();});
+      nodes.forEach(function(node) {node.drawSelectedArrows();});
       nodes.forEach(function(node) {node.drawNode();});
       nodes.forEach(function(node) {node.drawLabel();});
     };
@@ -188,14 +210,15 @@ window.addEventListener('polymer-ready', function(e) {
       var translateY = p.height/2 + shift[1];
       p.translate(translateX, translateY);
     }
-    
+
     function arrow(x1, y1, x2, y2) {
       //p.line(x1, y1, x2, y2);
 
       var dx = x2-x1;
       var dy = y2-y1;
+      var controlDist = p.max(10, p.abs(dx) * 0.5);
       p.noFill();
-      p.bezier(x1, y1, x1 + dx * 0.5, y1, x2-dx*0.5, y2, x2,y2);
+      p.bezier(x1, y1, x1 + controlDist, y1, x2-controlDist, y2, x2,y2);
       //var dist = p.sqrt(dx * dx + dy * dy);
       //var arrows = 10;
       //var distBetween = 1/arrows;
@@ -261,8 +284,7 @@ window.addEventListener('polymer-ready', function(e) {
 
       this.drawArrows = function() {
         if (this.selected) {
-          p.stroke(255, 0, 0);
-          p.fill(255, 0, 0);
+          return;
         } else {
           p.stroke(175, 175, 175);
           p.fill(175, 175, 175);
@@ -275,7 +297,23 @@ window.addEventListener('polymer-ready', function(e) {
           arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
         }
       };
-      
+
+      this.drawSelectedArrows = function() {
+        if (this.selected) {
+          p.stroke(255, 0, 0);
+          p.fill(255, 0, 0);
+        } else {
+          return
+        }
+        
+        var labelWidth = p.textWidth(this.name);
+        var front = this.x + labelWidth * 0.5;
+        for (var i = 0; i < this.parents.length; i++) {
+          var parent = this.parents[i];
+          arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
+        }
+        
+      };
 
       this.drawNode = function() {
         p.stroke(255);
