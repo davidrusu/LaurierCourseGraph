@@ -10,6 +10,7 @@ window.addEventListener('polymer-ready', function(e) {
     var lastMouse = [p.mouseX, p.mouseY]; // the previous mouse position
     var mousePressed = false;
     var maxDepth = 0;
+    var resetTime = p.millis();
 
     p.setup = function() {
       // size is set in the draw method so that scaling
@@ -17,12 +18,17 @@ window.addEventListener('polymer-ready', function(e) {
       p.frameRate(30);
     };
 
+    function millis() {
+      return p.millis() - resetTime;
+    }
+
     function reset() {
       if (!courses ||  !refresh) {
         return;
       }
       refresh = false;
 
+      resetTime = p.millis();
       maxDepth = 0;
       shift = [0, 0];
       lastMouse = [p.mouseX, p.mouseY];
@@ -109,8 +115,8 @@ window.addEventListener('polymer-ready', function(e) {
         for (var j=i+1; j < nodes.length; j++) {
           var b = nodes[j];
           var childrenB = b.children;
-          var aRelatives = a.parents.length;
-          var bRelatives = b.parents.length;
+          var aRelatives = a.children.length + a.parents.length;
+          var bRelatives = b.children.length + b.parents.length;
           var dx = a.x - b.x;
           var dy = a.y - b.y;
           var dist = p.max(1, p.sqrt(dx * dx + dy * dy));
@@ -118,17 +124,24 @@ window.addEventListener('polymer-ready', function(e) {
           var restingLength = p.min(aRelatives,bRelatives) * 20 + 100;
           var k = 0.05;
           var hierarchyPush = 0;
-
+          
           var fx = 0;
           var fy = 0;
-          if (childrenA.indexOf(b) === -1 &&
+          if (aRelatives === 0 && bRelatives === 0){
+            restingLength = 50;
+            k = 0.0001;
+          } else if (childrenA.indexOf(b) === -1 &&
               childrenB.indexOf(a) === -1) {
-            restingLength = 7 * nodes.length;
-            k = 1/restingLength * 0.01;
+            if (aRelatives === 0 || bRelatives === 0){
+              restingLength = 7 * nodes.length;
+            } else {
+              restingLength = 7 * nodes.length;
+            }
+            k = 1/restingLength * 1/dist * 20;
             var push = (bRelatives - aRelatives) * 1/dist;//p.min(0.1, 1 / p.abs(dy * dy)) * dy / p.abs(dy);
             //push = p.min(1, 1/p.abs(dx)) * 0.2;
-            //a.vy -= push;
-            //b.vy += push;
+            a.vy -= push;
+            b.vy += push;
           } else {
               // nodes are related
             var child;
@@ -142,21 +155,17 @@ window.addEventListener('polymer-ready', function(e) {
               child = b;
               parent = a;
             }
-            restingLength = p.min(500, child.parents.length * 50 + 50);
+            restingLength = 250;//p.min(500, child.parents.length * 50 + 50);
           }
           
-          var alignForce = p.min(0.5, 1/p.max(1, p.abs(dx)) * 1/dist) * dx / p.abs(dx) * 2;
-          a.vx -= alignForce;
-          b.vx += alignForce;
-          
 
-          var padding = 60;
+          var padding = 150;//p.min(3000, 5 * millis());
           if (dist < padding) {
-            var nudge = 1/(dist) * 20;
-            a.vx += nudge * dx / dist * 0.1;
-            a.vy += nudge * dy / dist;
-            b.vx -= nudge * dx / dist * 0.1;
-            b.vy -= nudge * dy / dist;
+            var nudge = p.min(1, 1/(dist*dist) * padding);
+            a.vx += nudge * dx / dist;
+            a.vy += nudge * dy / dist * 1.5;
+            b.vx -= nudge * dx / dist;
+            b.vy -= nudge * dy / dist * 1.5;
             
           }
           var d = restingLength - dist;
@@ -166,6 +175,10 @@ window.addEventListener('polymer-ready', function(e) {
           a.vy += fy;
           b.vx -= fx;
           b.vy -= fy;
+          
+          var alignForce = p.min(p.abs(dx * 0.1), 1/p.max(1, p.abs(dx)) * 1/(dist*dist) * millis() / 50.0) * dx / p.abs(dx);
+          a.vx -= alignForce;
+          b.vx += alignForce;
         }
       }
     }
@@ -303,7 +316,7 @@ window.addEventListener('polymer-ready', function(e) {
           p.stroke(255, 0, 0);
           p.fill(255, 0, 0);
         } else {
-          return
+          return;
         }
         
         var labelWidth = p.textWidth(this.name);
@@ -324,7 +337,11 @@ window.addEventListener('polymer-ready', function(e) {
       };
 
       this.drawLabel = function() {
-        p.fill(0);
+        if (this.selected) {
+          p.fill(255, 0, 0);
+        } else {
+          p.fill(0);
+        }
         var labelWidth = p.textWidth(this.name);
         var labelHeight = 12;//p.textHeight(this.name);
         p.text(this.name, this.x - labelWidth * 0.5, this.y + labelHeight * 0.5);
