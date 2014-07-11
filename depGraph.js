@@ -230,6 +230,9 @@ window.addEventListener('polymer-ready', function(e) {
       var dx = x2-x1;
       var dy = y2-y1;
       var controlDist = p.max(10, p.abs(dx) * 0.5);
+      var width = 6;
+      var r = 2;
+      p.triangle(x2, y2, x2 - width, y2 - r, x2 - width, y2 + r);
       p.noFill();
       p.bezier(x1, y1, x1 + controlDist, y1, x2-controlDist, y2, x2,y2);
       //var dist = p.sqrt(dx * dx + dy * dy);
@@ -298,24 +301,20 @@ window.addEventListener('polymer-ready', function(e) {
       this.drawArrows = function() {
         if (this.selected) {
           return;
-        } else {
-          p.stroke(175, 175, 175);
-          p.fill(175, 175, 175);
         }
         
         var labelWidth = p.textWidth(this.name);
         var front = this.x + labelWidth * 0.5;
         for (var i = 0; i < this.parents.length; i++) {
           var parent = this.parents[i];
+          p.stroke(175, 175, 175);
+          p.fill(175, 175, 175);
           arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
         }
       };
 
       this.drawSelectedArrows = function() {
-        if (this.selected) {
-          p.stroke(255, 0, 0);
-          p.fill(255, 0, 0);
-        } else {
+        if (!this.selected) {
           return;
         }
         
@@ -323,6 +322,8 @@ window.addEventListener('polymer-ready', function(e) {
         var front = this.x + labelWidth * 0.5;
         for (var i = 0; i < this.parents.length; i++) {
           var parent = this.parents[i];
+          p.stroke(255, 0, 0);
+          p.fill(255, 0, 0);
           arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
         }
         
