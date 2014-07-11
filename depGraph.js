@@ -57,9 +57,9 @@ window.addEventListener('polymer-ready', function(e) {
 
       var node = new Node(name, p.random(p.width), p.random(p.height));
       nodeDict[name] = node;
-      if (children.length === 0 && parents.length === 0) {
-        orphanNodes.push(node);
-      } else {
+      //if (children.length === 0 && parents.length === 0) {
+        //orphanNodes.push(node);
+      //} else {
         nodes.push(node);
         children.forEach(function(child) {
           node.addChild(createNode(child));
@@ -67,7 +67,7 @@ window.addEventListener('polymer-ready', function(e) {
         parents.forEach(function(parent) {
           node.addParent(createNode(parent));
         });
-      }
+      //}
       maxDepth = p.max(maxDepth, node.depth());
       return node;
     }
@@ -112,7 +112,7 @@ window.addEventListener('polymer-ready', function(e) {
           var dy = a.y - b.y;
           var dist = p.max(10, p.sqrt(dx * dx + dy * dy));
 
-          var restingLength = 150;
+          var restingLength = 200;//+  10* (p.millis() % 10) / (p.millis() % 100 + 1);
           var k = 0.01;
           var hierarchyPush = 0;
 
@@ -120,6 +120,10 @@ window.addEventListener('polymer-ready', function(e) {
               childrenB.indexOf(a) === -1) {
             restingLength = 500;
             k *= 1 * 1/dist;
+            
+            var push = p.min(0.01, p.abs(1/dy)) * dy /p.abs(dy);
+            a.vy += push;
+            b.vy -= push;
           } else {
               // nodes are related
             hierarchyPush = 1;
@@ -158,7 +162,9 @@ window.addEventListener('polymer-ready', function(e) {
       recenterNodes();
       p.fill(0);
       p.background(255);
-      nodes.forEach(function(node) {node.draw();});
+      nodes.forEach(function(node) {node.drawArrows();});
+      nodes.forEach(function(node) {node.drawNode();});
+      nodes.forEach(function(node) {node.drawLabel();});
     };
 
     function recenterNodes() {
@@ -183,19 +189,27 @@ window.addEventListener('polymer-ready', function(e) {
       p.translate(translateX, translateY);
     }
     
-    function arrow(x1, y1, x2, y2, param) {
-      p.line(x1, y1, x2, y2);
+    function arrow(x1, y1, x2, y2) {
+      //p.line(x1, y1, x2, y2);
 
       var dx = x2-x1;
       var dy = y2-y1;
-
-      p.pushMatrix();
-      p.translate(x1 + dx * param, y1 + dy * param);
-      var a = p.atan2(-dx, dy);
-      p.rotate(a);
-      var r = 5;
-      p.triangle(0, 0, -r/2, -r * 2, r/2, -r * 2);
-      p.popMatrix();
+      p.noFill();
+      p.bezier(x1, y1, x1 + dx * 0.5, y1, x2-dx*0.5, y2, x2,y2);
+      //var dist = p.sqrt(dx * dx + dy * dy);
+      //var arrows = 10;
+      //var distBetween = 1/arrows;
+      //var thick = 2;
+      //for (var i = 0; i < arrows; i++) {
+      //  p.pushMatrix();
+      //  var param = (i + 1) * distBetween;
+      //  p.translate(x1 + dx * param, y1 + dy * param);
+      //  var a = p.atan2(-dx, dy);
+      //  p.rotate(a);
+      //  var r = distBetween * dist;
+      //  p.triangle(0, 0, -thick, -r, thick, -r);
+      //  p.popMatrix();
+      //}
     }
    
     function Node(name, x, y) {
@@ -244,27 +258,38 @@ window.addEventListener('polymer-ready', function(e) {
         });
         return maxDepth + 1;
       };
-      
-      this.draw = function() {
-        p.stroke(0);
-        p.fill(255);
-        p.ellipse(this.x, this.y, 10, 10);
 
-        p.fill(0);
-        p.text(this.name, this.x, this.y);
-
+      this.drawArrows = function() {
         if (this.selected) {
           p.stroke(255, 0, 0);
           p.fill(255, 0, 0);
         } else {
-          p.stroke(0, 0, 0, 50);
-          p.fill(0, 0, 0, 50);
+          p.stroke(175, 175, 175);
+          p.fill(175, 175, 175);
         }
-
+        
+        var labelWidth = p.textWidth(this.name);
+        var front = this.x + labelWidth * 0.5;
         for (var i = 0; i < this.parents.length; i++) {
           var parent = this.parents[i];
-          arrow(this.x, this.y, parent.x, parent.y, 0.5);
+          arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
         }
+      };
+      
+
+      this.drawNode = function() {
+        p.stroke(255);
+        p.fill(255);
+        var labelWidth = p.textWidth(this.name);
+        var labelHeight = 12;//p.textHeight(this.name);
+        p.ellipse(this.x, this.y, labelWidth, labelHeight);
+      };
+
+      this.drawLabel = function() {
+        p.fill(0);
+        var labelWidth = p.textWidth(this.name);
+        var labelHeight = 12;//p.textHeight(this.name);
+        p.text(this.name, this.x - labelWidth * 0.5, this.y + labelHeight * 0.5);
       };
     }
   }
