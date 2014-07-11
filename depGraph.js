@@ -92,7 +92,7 @@ window.addEventListener('polymer-ready', function(e) {
       var actualMouseY = p.mouseY - p.height/2 - shift[1];
       nodes.forEach(function(node) {
         var mouseNodeDist = p.dist(node.x, node.y, actualMouseX, actualMouseY);
-        if (mouseNodeDist < 10) {
+        if (mouseNodeDist < 30) {
           node.select();
           return;
         }
