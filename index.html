@@ -70,7 +70,13 @@
 			 if (dep[faculty][department] != undefined) {
 			   classKeys = Object.keys(dep[faculty][department]);
                for (var key in dep[faculty][department]) {
-				 courses[key] = dep[faculty][department][key];
+                 var newDep = dep[faculty][department][key];
+                 if (courses[key] === undefined) {
+				   courses[key] = newDep;
+                 } else {
+                   courses[key].parents = courses[key].parents.concat(newDep.parents);
+                   courses[key].children = courses[key].children.concat(newDep.children);
+                 }
 			   }
 			 }
 		   });

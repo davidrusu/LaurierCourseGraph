@@ -104,8 +104,8 @@ def clean_course(raw_course):
     course_code = raw_course.strip()
     if course_code[-1] in extra_letters:
         course_code = course_code[:-1]
-    elif course_code[-1] not in nums:
-        print(course_code, course_code[-1])
+    # elif course_code[-1] not in nums:
+        # print(course_code, course_code[-1])
     return course_code
     
 def main(file_name):
@@ -116,6 +116,7 @@ def main(file_name):
         attrs={'summary':
                'This layout table is used to present the sections found'})
     data = dict()
+    all_nodes = dict()
     for course in courses[:-1]:
         values = course.tbody.tr.th.string.strip().split(' - ')
         if len(values) == 5:
@@ -150,19 +151,31 @@ def main(file_name):
         
         entry = nodes[course_code]
         entry['name'] = course_name
-        
+        all_nodes[course_code] = entry
         for prereq in prereqs:
             if prereq not in nodes:
-                nodes[prereq] = {'parents':[], 'children':[]}
+                prereq_code = prereq
+                prereq_department = departments[prereq_code[:2]]
+                prereq_faculty = faculties[prereq_department]
+                
+                if prereq_faculty not in data:
+                    data[prereq_faculty] = {}
+                if prereq_department not in data[prereq_faculty]:
+                    data[prereq_faculty][prereq_department] = {}
+            
+                nodes = data[prereq_faculty][prereq_department]
+        
+                if prereq_code not in nodes:
+                    nodes[prereq_code] = {'parents':[], 'children':[]}
+                    all_nodes[prereq_code] = nodes[prereq_code]
+
             if course_code not in nodes[prereq]['parents']:
                 nodes[prereq]['parents'].append(course_code)
             if prereq not in entry['children']:
                 entry['children'].append(prereq)
-
         
-    return data
-
-
+    return data, all_nodes
+    
 def dot_output(nodes):
     out_file = open('dep.dot', 'w')
     print('digraph G {', file=out_file)
@@ -188,20 +201,35 @@ def dot_output(nodes):
     out_file.close()
     print(sorted(sections))
 
-def json_output(nodes):
-    no_names = 0
-    for key in nodes:
-        if 'name' not in nodes[key]:
-            no_names += 1
-            #print(key)
-    print(no_names)
+def json_output(nodes, all_nodes):
+    fixes = 0
+    for key in all_nodes:
+        node = all_nodes[key]
+        for child in node['children']:
+            if child not in all_nodes:
+                print('child', key, child)
+            else:
+                childNode = all_nodes[child]
+                if key not in childNode['parents']:
+                    childNode['parents'].append(key)
+                    print('fix', key, child)
+                    fixes += 1
+        for parent in node['parents']:
+            if parent not in all_nodes:
+                print('parent', key, parent)
+            else:
+                parentNode = all_nodes[parent]
+                if key not in parentNode['children']:
+                    parentNode['children'].append(key)
+                    fixes += 1
+    print(fixes)
     with open('dep.json', 'w') as out_file:
         print('dep = ', end='', file=out_file)
-        print(json.dumps(nodes), file=out_file)
+        print(json.dumps(nodes, indent=2, sort_keys=True), file=out_file)
     
     
     
 
 if __name__ == '__main__':
-    nodes = main(sys.argv[1])
-    json_output(nodes)
+    nodes, all_nodes = main(sys.argv[1])
+    json_output(nodes, all_nodes)
