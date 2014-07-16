@@ -225,7 +225,7 @@ def json_output(nodes, all_nodes):
     print(fixes)
     with open('dep.json', 'w') as out_file:
         print('dep = ', end='', file=out_file)
-        print(json.dumps(nodes, indent=2, sort_keys=True), file=out_file)
+        print(json.dumps(nodes, sort_keys=True), file=out_file)
     
     
     
