@@ -1,9 +1,9 @@
 "use strict";
 var courses = {}; // filled with courses when user clicks tags
 var refresh = true; // refresh is set to true whenever courses is modified
+var nodes = [];
 window.addEventListener('polymer-ready', function(e) {
   function sketchProc(p) {
-    var nodes = [];
     var orphanNodes = []; // nodes with no parents or children
     var nodeDict = {}; // dictionary that store nodes for quick lookup
     var shift = [0, 0]; // translation vector for panning
@@ -90,13 +90,18 @@ window.addEventListener('polymer-ready', function(e) {
     p.mouseClicked = function() {
       var actualMouseX = p.mouseX - p.width/2 - shift[0];
       var actualMouseY = p.mouseY - p.height/2 - shift[1];
+      var closestNode = null;
+      var closestDist = 1e1000;
       nodes.forEach(function(node) {
         var mouseNodeDist = p.dist(node.x, node.y, actualMouseX, actualMouseY);
-        if (mouseNodeDist < 30) {
-          node.select();
-          return;
+        if (mouseNodeDist < 30 && mouseNodeDist < closestDist) {
+          closestNode = node;
+          closestDist = mouseNodeDist;
         }
       });
+      if (closestNode) {
+        closestNode.select();
+      }
     };
 
     function updateMouse() {
@@ -115,8 +120,8 @@ window.addEventListener('polymer-ready', function(e) {
         for (var j=i+1; j < nodes.length; j++) {
           var b = nodes[j];
           var childrenB = b.children;
-          var aRelatives = a.children.length + a.parents.length;
-          var bRelatives = b.children.length + b.parents.length;
+          var aRelatives = a.children.length + Object.keys(a.parents).length;
+          var bRelatives = b.children.length + Object.keys(b.parents).length;
           var dx = a.x - b.x;
           var dy = a.y - b.y;
           var dist = p.max(1, p.sqrt(dx * dx + dy * dy));
@@ -161,7 +166,7 @@ window.addEventListener('polymer-ready', function(e) {
 
           var padding = 150;//p.min(3000, 5 * millis());
           if (dist < padding) {
-            var nudge = p.min(1, 1/(dist*dist) * padding);
+            var nudge = p.min(2, 1/(dist*dist) * 200);
             a.vx += nudge * dx / dist;
             a.vy += nudge * dy / dist * 1.5;
             b.vx -= nudge * dx / dist;
@@ -258,7 +263,7 @@ window.addEventListener('polymer-ready', function(e) {
       this.vx = 0;
       this.vy = 0;
       this.children = [];
-      this.parents = [];
+      this.parents = {};
       this.rate = p.random(20, 1000);
       this.selected = false;
 
@@ -267,18 +272,90 @@ window.addEventListener('polymer-ready', function(e) {
       };
 
       this.addParent = function(node) {
-        this.parents.push(node);
+        this.parents[node.name] = [node, false];
       };
+
+      this.numSelectedParents = function(node) {
+        var numSelectedParents = 0;
+        for (parent in this.parents) {
+          if (this.parents[parent][1]) {
+            numSelectedParents += 1;
+          }
+        }
+        return numSelectedParents;
+      }
 
       this.select = function() {
-        this.selectRecursive(!this.selected);
+        console.log('selected');
+        var all = true;
+        for (parent in this.parents) {
+          var parentState = this.parents[parent][1];
+          all = all && parentState;
+        }
+        // all sel state
+        //  1 | 1 | 0
+        //  1 | 0 | 1
+        //  0 | 1 | 0
+        //  0 | 0 | 1
+        this.selected = !this.selected;//!(all && this.selected)
+        console.log('selected', this.selected);
+        var name = this.name;
+        var state = this.selected;
+        this.children.forEach(function(child) {
+          child.selectRecursiveChildren(name, state);
+        });
+        var numSelectedParents = this.numSelectedParents();
+        if (numSelectedParents > 0 || this.selected) {
+          this.selectRecursiveParents(this.selected);
+        }
+      };
+      
+      this.selectRecursiveChildren = function(parent, state) {
+        console.log('recChild', parent, state);
+        this.parents[parent][1] = state;
+        console.log('recChild', this.parents[parent][1], state);
+        this.selected = state || this.numSelectedParents() > 0;
+        if (!state) {
+          var toDeselect = true;
+          for (var par in this.parents) {
+            toDeselect = toDeselect && !this.parents[par][1];
+          }
+          if (toDeselect) {
+            var name = this.name;
+            this.children.forEach(function(child) {
+              if (child.parents[parent][1]) {
+                child.selectRecursiveChildren(name, state);
+              }
+            });
+          }
+        } else {
+          var name = this.name;
+          this.children.forEach(function(child) {
+            child.selectRecursiveChildren(name, state);
+          });
+        }
       };
 
-      this.selectRecursive = function(state) {
-        this.selected = state;
-        this.parents.forEach(function(parent) {
-          parent.selectRecursive(state);
-        });
+      this.selectRecursiveParents = function(state) {
+        var selfState = state;
+        for (var i = 0; i < this.children.length; i++) {
+          var child = this.children[i];
+          console.log('child', child.name);
+          if (child.parents[this.name][1]) {
+            selfState = true;
+            break;
+          }
+        }
+        this.selected = selfState;
+        console.log('recPar', this.name, this.selected, state);
+        
+        for (var parent in this.parents) {
+          this.parents[parent][1] = selfState;
+        }
+        for (var parent in this.parents) {
+          console.log(parent)
+          this.parents[parent][0].selectRecursiveParents(selfState);
+        };
       };
 
       this.update = function() {
@@ -299,34 +376,30 @@ window.addEventListener('polymer-ready', function(e) {
       };
 
       this.drawArrows = function() {
-        if (this.selected) {
-          return;
-        }
-        
         var labelWidth = p.textWidth(this.name);
         var front = this.x + labelWidth * 0.5;
-        for (var i = 0; i < this.parents.length; i++) {
-          var parent = this.parents[i];
-          p.stroke(175, 175, 175);
-          p.fill(175, 175, 175);
-          arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
+        for (parent in this.parents) {
+          //console.log('arrows', parent, this.parents, this.parents[parent]);
+          if (!this.parents[parent][1]) {
+            p.stroke(175, 175, 175);
+            p.fill(175, 175, 175);
+            var par = this.parents[parent][0];
+            arrow(front, this.y, par.x - labelWidth * 0.5, par.y);
+          }
         }
       };
 
       this.drawSelectedArrows = function() {
-        if (!this.selected) {
-          return;
-        }
-        
         var labelWidth = p.textWidth(this.name);
         var front = this.x + labelWidth * 0.5;
-        for (var i = 0; i < this.parents.length; i++) {
-          var parent = this.parents[i];
-          p.stroke(255, 0, 0);
-          p.fill(255, 0, 0);
-          arrow(front, this.y, parent.x - labelWidth * 0.5, parent.y);
+        for (parent in this.parents) {
+          if (this.parents[parent][1]) {
+            p.stroke(255, 0, 0);
+            p.fill(255, 0, 0);
+            var par = this.parents[parent][0];
+            arrow(front, this.y, par.x - labelWidth * 0.5, par.y);
+          }
         }
-        
       };
 
       this.drawNode = function() {
