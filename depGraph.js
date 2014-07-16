@@ -502,7 +502,7 @@ window.addEventListener('polymer-ready', function(e) {
         if (this.selected) {
           p.fill(255, 0, 0);
         } else {
-          p.fill(175);
+          p.fill(75);
         }
         var labelWidth = p.textWidth(this.id);
         var labelHeight = 12;//p.textHeight(this.id);
