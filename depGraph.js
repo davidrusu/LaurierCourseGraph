@@ -86,7 +86,7 @@ window.addEventListener('polymer-ready', function(e) {
   function sketchProc(p) {
     var orphanNodes = []; // nodes with no parents or children
     var nodeDict = {}; // dictionary that store nodes for quick lookup
-    var shift = [0, 0]; // translation vector for panning
+    var shift = { x: 0, y: 0 }; // translation vector for panning
     var lastMouse = [p.mouseX, p.mouseY]; // the previous mouse position
     var mousePressed = false;
     var maxDepth = 0;
@@ -95,7 +95,7 @@ window.addEventListener('polymer-ready', function(e) {
     p.setup = function() {
       // size is set in the draw method so that scaling
       // the window will update the canvas size
-      p.frameRate(30);
+      p.frameRate(60);
     };
 
     function millis() {
@@ -103,14 +103,15 @@ window.addEventListener('polymer-ready', function(e) {
     }
 
     function reset() {
-      if (!courses ||  !refresh) {
+      if (!courses || !refresh) {
         return;
       }
       refresh = false;
 
       resetTime = p.millis();
       maxDepth = 0;
-      shift = [0, 0];
+      shift.x = 0;
+      shift.y = 0;
       lastMouse = [p.mouseX, p.mouseY];
       nodes = [];
       nodeDict = {};
@@ -128,8 +129,8 @@ window.addEventListener('polymer-ready', function(e) {
         }
       }
       
-      for (var courseName in courses) {
-        createNode(courseName);
+      for (var name in courses) {
+        createNode(name);
       }
     }
 
@@ -142,7 +143,7 @@ window.addEventListener('polymer-ready', function(e) {
         var department = departments[depCode];
         var faculty = faculties[department];
         var externalDep = dep[faculty][department][id];
-        courses[id] = {'name':externalDep.name, 'children':[], 'parents':[]}
+        courses[id] = {'name':externalDep.name, 'children':[], 'parents':[]};
         for (course in courses) {
           if (courses[course].children.indexOf(id) != -1) {
             courses[id].parents.push(course);
@@ -159,9 +160,6 @@ window.addEventListener('polymer-ready', function(e) {
 
       var node = new Node(id, name, p.random(p.width), p.random(p.height));
       nodeDict[id] = node;
-      //if (children.length === 0 && parents.length === 0) {
-        //orphanNodes.push(node);
-      //} else {
         nodes.push(node);
         children.forEach(function(child) {
           node.addChild(createNode(child));
@@ -169,22 +167,23 @@ window.addEventListener('polymer-ready', function(e) {
         parents.forEach(function(parent) {
           node.addParent(createNode(parent));
         });
-      //}
       maxDepth = p.max(maxDepth, node.depth());
       return node;
     }
 
     p.mousePressed = function() {
+      console.log('mousepressed');
       mousePressed = true;
     };
-
+    
     p.mouseReleased = function() {
+      console.log('mousereleased');
       mousePressed = false;
     };
 
     p.mouseClicked = function() {
-      var actualMouseX = p.mouseX - p.width/2 - shift[0];
-      var actualMouseY = p.mouseY - p.height/2 - shift[1];
+      var actualMouseX = p.mouseX - shift.x;
+      var actualMouseY = p.mouseY - shift.y;
       var closestNode = null;
       var closestDist = 1e1000;
       nodes.forEach(function(node) {
@@ -201,21 +200,22 @@ window.addEventListener('polymer-ready', function(e) {
 
     function updateMouse() {
       if (mousePressed) {
-        shift[0] += p.mouseX - lastMouse[0];
-        shift[1] += p.mouseY - lastMouse[1];
+        shift.x += p.mouseX - lastMouse[0];
+        shift.y += p.mouseY - lastMouse[1];
       }
       lastMouse[0] = p.mouseX;
       lastMouse[1] = p.mouseY;
     }
 
     function springDynamics() {
+      
       for (var i = 0; i < nodes.length; i++) {
         var a = nodes[i];
         var childrenA = a.children;
+        var aRelatives = a.children.length + Object.keys(a.parents).length;
         for (var j=i+1; j < nodes.length; j++) {
           var b = nodes[j];
           var childrenB = b.children;
-          var aRelatives = a.children.length + Object.keys(a.parents).length;
           var bRelatives = b.children.length + Object.keys(b.parents).length;
           var dx = a.x - b.x;
           var dy = a.y - b.y;
@@ -228,38 +228,37 @@ window.addEventListener('polymer-ready', function(e) {
           var fx = 0;
           var fy = 0;
           if (aRelatives === 0 && bRelatives === 0){
+            // nodes are not connected 
             restingLength = 50;
             k = 0.0001;
-          } else if (childrenA.indexOf(b) === -1 &&
-              childrenB.indexOf(a) === -1) {
-            if (aRelatives === 0 || bRelatives === 0){
+          } else  {
+            var bInA = childrenA.indexOf(b);
+            var aInB = childrenB.indexOf(a);
+            if (bInA === -1 && aInB === -1) {
               restingLength = 7 * nodes.length;
+              // nodes are not related
+              k = 20/(restingLength * dist);
+              var push = (bRelatives - aRelatives) / dist;
+              a.vy -= push;
+              b.vy += push;
             } else {
-              restingLength = 7 * nodes.length;
-            }
-            k = 1/restingLength * 1/dist * 20;
-            var push = (bRelatives - aRelatives) * 1/dist;//p.min(0.1, 1 / p.abs(dy * dy)) * dy / p.abs(dy);
-            //push = p.min(1, 1/p.abs(dx)) * 0.2;
-            a.vy -= push;
-            b.vy += push;
-          } else {
               // nodes are related
-            var child;
-            var parent;
-            hierarchyPush = 1;
-            if (childrenA.indexOf(b) === -1) {
-              hierarchyPush *= -2;
-              child = a;
-              parent = b;
-            } else {
-              child = b;
-              parent = a;
+              var child;
+              var parent;
+              if (bInA === -1) {
+                hierarchyPush = -2;
+                child = a;
+                parent = b;
+              } else {
+                hierarchyPush = 1;
+                child = b;
+                parent = a;
+              }
             }
-            restingLength = 250;//p.min(500, child.parents.length * 50 + 50);
           }
           
 
-          var padding = 150;//p.min(3000, 5 * millis());
+          var padding = 150;
           if (dist < padding) {
             var nudge = p.min(2, 1/(dist*dist) * 200);
             a.vx += nudge * dx / dist;
@@ -276,7 +275,11 @@ window.addEventListener('polymer-ready', function(e) {
           b.vx -= fx;
           b.vy -= fy;
           
-          var alignForce = p.min(p.abs(dx * 0.1), 1/p.max(1, p.abs(dx)) * 1/(dist*dist) * millis() / 50.0) * dx / p.abs(dx);
+          var alignForce = p.min(
+            p.abs(dx * 0.1),
+            millis()/(50 * p.max(1, p.abs(dx)) * (dist*dist))
+          );
+          alignForce *= dx / p.abs(dx);
           a.vx -= alignForce;
           b.vx += alignForce;
         }
@@ -293,40 +296,16 @@ window.addEventListener('polymer-ready', function(e) {
     p.draw = function() {
       p.size(w, h);
       update();
-      recenterNodes();
-      p.fill(0);
       p.background(255);
-      nodes.forEach(function(node) {node.drawArrows();});
-      nodes.forEach(function(node) {node.drawSelectedArrows();});
-      nodes.forEach(function(node) {node.drawNode();});
-      nodes.forEach(function(node) {node.drawLabel();});
+      p.translate(shift.x, shift.y);
+      var onScreenNodes = nodes.filter(function(node) {return node.onScreen();});
+      onScreenNodes.forEach(function(node) {node.drawArrows();});
+      onScreenNodes.forEach(function(node) {node.drawSelectedArrows();});
+      onScreenNodes.forEach(function(node) {node.drawNode();});
+      onScreenNodes.forEach(function(node) {node.drawLabel();});
     };
 
-    function recenterNodes() {
-      var sumX = 0;
-      var sumY = 0;
-      
-      nodes.forEach(function(node) {
-        sumX += node.x;
-        sumY += node.y;
-      });
-
-      var centerX = sumX / nodes.length;
-      var centerY = sumY / nodes.length;
-
-      nodes.forEach(function(node) {
-        node.x -= centerX;
-        node.y -= centerY;
-      });
-
-      var translateX = p.width/2 + shift[0];
-      var translateY = p.height/2 + shift[1];
-      p.translate(translateX, translateY);
-    }
-
     function arrow(x1, y1, x2, y2) {
-      //p.line(x1, y1, x2, y2);
-
       var dx = x2-x1;
       var dy = y2-y1;
       var controlDist = p.max(10, p.abs(dx) * 0.5);
@@ -335,20 +314,6 @@ window.addEventListener('polymer-ready', function(e) {
       p.triangle(x2, y2, x2 - width, y2 - r, x2 - width, y2 + r);
       p.noFill();
       p.bezier(x1, y1, x1 + controlDist, y1, x2-controlDist, y2, x2,y2);
-      //var dist = p.sqrt(dx * dx + dy * dy);
-      //var arrows = 10;
-      //var distBetween = 1/arrows;
-      //var thick = 2;
-      //for (var i = 0; i < arrows; i++) {
-      //  p.pushMatrix();
-      //  var param = (i + 1) * distBetween;
-      //  p.translate(x1 + dx * param, y1 + dy * param);
-      //  var a = p.atan2(-dx, dy);
-      //  p.rotate(a);
-      //  var r = distBetween * dist;
-      //  p.triangle(0, 0, -thick, -r, thick, -r);
-      //  p.popMatrix();
-      //}
     }
    
     function Node(id, name, x, y) {
@@ -379,7 +344,7 @@ window.addEventListener('polymer-ready', function(e) {
           }
         }
         return numSelectedParents;
-      }
+      };
 
       this.select = function() {
         var all = true;
@@ -392,7 +357,7 @@ window.addEventListener('polymer-ready', function(e) {
         //  1 | 0 | 1
         //  0 | 1 | 0
         //  0 | 0 | 1
-        this.selected = !this.selected;//!(all && this.selected)
+        this.selected = !this.selected;
         var id = this.id;
         var state = this.selected;
         this.children.forEach(function(child) {
@@ -464,16 +429,27 @@ window.addEventListener('polymer-ready', function(e) {
         return maxDepth + 1;
       };
 
+      this.onScreen = function() {
+        var labelWidth = p.textWidth(this.id);
+        return this.x + shift.x + labelWidth >= 0
+          && this.x + shift.x <= p.width
+          && this.y + shift.y >= 0
+          && this.y + shift.y <= p.height;
+      };
+
       this.drawArrows = function() {
         var labelWidth = p.textWidth(this.id);
         var front = this.x + labelWidth * 0.5;
-        for (parent in this.parents) {
-          if (!this.parents[parent][1]) {
-            p.stroke(175, 175, 175);
-            p.fill(175, 175, 175);
-            var par = this.parents[parent][0];
-            arrow(front, this.y, par.x - labelWidth * 0.5, par.y);
+
+        p.stroke(175, 175, 175);
+        p.fill(175, 175, 175);
+        
+        for (var parent in this.parents) {
+          if (this.parents[parent][1]) {
+            continue;
           }
+          var par = this.parents[parent][0];
+          arrow(front, this.y, par.x - labelWidth * 0.5, par.y);
         }
       };
 
@@ -491,21 +467,28 @@ window.addEventListener('polymer-ready', function(e) {
       };
 
       this.drawNode = function() {
+        var labelWidth = p.textWidth(this.id);
+        var labelHeight = 12;
+        if ((this.x - labelWidth < 0 || this.x > p.width) || (this.y - labelHeight < 0 || this.y > p.height)) {
+          return;
+        }
         p.stroke(255);
         p.fill(255);
-        var labelWidth = p.textWidth(this.id);
-        var labelHeight = 12;//p.textHeight(this.id);
         p.ellipse(this.x, this.y, labelWidth, labelHeight);
       };
 
       this.drawLabel = function() {
+        if (!this.onScreen()) {
+          return;
+        }
+          
         if (this.selected) {
           p.fill(255, 0, 0);
         } else {
           p.fill(75);
         }
         var labelWidth = p.textWidth(this.id);
-        var labelHeight = 12;//p.textHeight(this.id);
+        var labelHeight = 12;
         p.text(this.id, this.x - labelWidth * 0.5, this.y + labelHeight * 0.5);
         if (this.selected) {
           labelWidth = p.textWidth(this.name);
